@@ -11,8 +11,8 @@ const serif = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  title: "관세성실신고 확인제도 검증 프로그램",
-  description: "UNI-PASS 수입신고 내역을 올리면 성실신고 확인 시 다시 볼 의심 건을 찾아 줍니다",
+  title: "JW Customs Audit System (J-CAS)",
+  description: "J-CAS - 관세 성실신고 확인제도 대비, UNI-PASS 수입신고 내역에서 다시 확인할 건을 선별하는 검증 시스템",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

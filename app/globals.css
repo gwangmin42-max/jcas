@@ -125,3 +125,14 @@ td { padding: 8px; border-top: 1px solid var(--line); vertical-align: top; }
 .faq summary::after { content: "+"; color: var(--accent); font-size: 20px; line-height: 1; }
 .faq details[open] summary::after { content: "−"; }
 .faq details p { margin: 10px 0 0; color: var(--muted); font-size: 14.5px; }
+
+.brand-banner { background: #0f2238; color: #fff; border-radius: 18px; padding: 22px 24px 20px; text-align: center; border: 1px solid rgba(255,255,255,.08); }
+.brand-banner p { margin: 0; }
+.bb-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; letter-spacing: .08em; color: #b8d4ea; }
+.bb-name { font-size: 34px; font-weight: 800; letter-spacing: .02em; margin-top: 12px !important; line-height: 1.1; }
+.bb-sub { margin-top: 6px !important; color: #c9d6e6; font-size: 15px; }
+.brand-banner hr { border: 0; border-top: 1px solid rgba(255,255,255,.22); margin: 16px 0 14px; }
+.bb-ko { font-weight: 700; font-size: 16px; }
+.bb-tag { margin-top: 6px !important; font-size: 12px; color: #9db3cc; letter-spacing: .02em; }
+.hero-banner { grid-column: 1 / -1; max-width: 520px; width: 100%; margin: 0 auto 8px; }
+main > .brand-banner { margin-bottom: 20px; }

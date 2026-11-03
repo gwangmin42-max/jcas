@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandBanner from "@/components/BrandBanner";
 import HeroIllustration from "@/components/HeroIllustration";
 
 const TRUST = [
@@ -102,8 +103,11 @@ export default function Home() {
     <main className="home">
       <section className="hero">
         <div className="hero-inner">
+          <div className="hero-banner">
+            <BrandBanner />
+          </div>
           <div>
-            <p className="eyebrow">관세 성실신고 확인제도 대비</p>
+            <p className="eyebrow">J-CAS · 관세 성실신고 확인제도 대비</p>
             <h1>
               확인서를 작성하기 전,
               <br />
@@ -269,7 +273,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="site-footer">제이더블유 관세법인 · 관세성실신고 확인제도 검증 프로그램 · 내부 업무용</footer>
+      <footer className="site-footer">JW Customs Audit System (J-CAS) · 제이더블유 관세법인 · 내부 업무용</footer>
     </main>
   );
 }

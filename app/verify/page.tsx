@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import BrandBanner from "@/components/BrandBanner";
 import type { VerifyResult, Category } from "@/lib/verify";
 
 const CATEGORIES: Category[] = ["품목분류", "세율·세액", "FTA·원산지", "과세가격"];
@@ -53,7 +54,8 @@ export default function Home() {
 
   return (
     <main>
-      <h1>관세성실신고 확인제도 검증 프로그램</h1>
+      <BrandBanner />
+      <h1>수입신고 검증</h1>
       <p className="sub">UNI-PASS 수입신고 내역(란 단위) 엑셀을 올리면, 성실신고 확인 때 다시 볼 의심 건을 찾아 줍니다.</p>
 
       <div className="card">
