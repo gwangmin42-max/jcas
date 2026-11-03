@@ -152,10 +152,10 @@ main > .brand-banner { margin-bottom: 20px; }
 .legal-box p { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.7; }
 .legal-box p + p { margin-top: 8px; }
 .benefit-note { margin-top: 12px !important; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13px !important; }
-.service { max-width: 900px; }
+.service { max-width: 1100px; }
 .service-list { list-style: none; padding: 0; margin: 4px 0 24px; display: grid; gap: 8px; }
 .service-list li { padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 14.5px; color: var(--brand-deep); }
-.service-cta { margin-top: 8px; }
+.service-cta { margin-top: 8px; display: flex; justify-content: center; }
 .btn-primary.solid { background: var(--brand); color: #fff; }
 .btn-primary.solid:hover { background: var(--brand-deep); }
 .footer-legal { max-width: 820px; margin: 10px auto 0; font-size: 12px; line-height: 1.7; }
