@@ -15,6 +15,10 @@ export default function Home() {
   const [category, setCategory] = useState<Category | "전체">("전체");
 
   async function verify(selected: File) {
+    if (selected.size > 4 * 1024 * 1024) {
+      setError("파일이 4MB를 넘습니다. 기간을 나누어 올려 주세요.");
+      return;
+    }
     setFile(selected);
     setResult(null);
     setError("");
@@ -79,7 +83,7 @@ export default function Home() {
           onChange={(e) => { const picked = e.target.files?.[0]; if (picked) verify(picked); e.target.value = ""; }}
         />
         {error && <div className="err">{error}</div>}
-        <p className="foot">파일은 이 컴퓨터에서만 처리되고 저장되지 않습니다.</p>
+        <p className="foot">파일은 검증에만 사용되며 서버에 저장되지 않습니다. (최대 4MB)</p>
       </div>
 
       {result && (

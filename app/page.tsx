@@ -3,7 +3,7 @@ import HeroIllustration from "@/components/HeroIllustration";
 
 const TRUST = [
   { title: "실무 점검 항목 기준", desc: "품목분류·세율·FTA·과세가격 네 분야" },
-  { title: "자료는 저장하지 않습니다", desc: "업로드한 파일은 이 컴퓨터에서만 처리됩니다" },
+  { title: "자료는 저장하지 않습니다", desc: "업로드한 파일은 검증에만 쓰이고 서버에 보관되지 않습니다" },
   { title: "관세청 발표안 반영", desc: "2026.8.14. 보도자료 기준으로 정리했습니다" },
 ];
 
@@ -85,7 +85,7 @@ const FAQS = [
   },
   {
     q: "올린 자료는 어디로 전송되나요?",
-    a: "외부로 전송하거나 저장하지 않습니다. 파일은 이 프로그램이 실행 중인 컴퓨터에서만 처리됩니다.",
+    a: "암호화된 연결(HTTPS)로 서버에 전달되어 검증에만 사용되며, 검증이 끝나면 보관하지 않습니다. 접속은 제공받은 비밀번호를 가진 분에게만 허용됩니다.",
   },
   {
     q: "제도 시행 전인데 지금 사용할 의미가 있나요?",
@@ -122,7 +122,7 @@ export default function Home() {
               </Link>
             </div>
             <ul className="hero-points">
-              <li>업로드한 자료는 저장되지 않습니다</li>
+              <li>업로드한 자료는 서버에 저장되지 않습니다</li>
               <li>오류를 확정하지 않고 확인 대상을 선별합니다</li>
             </ul>
           </div>
@@ -269,7 +269,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="site-footer">JW Customs Audit System (J-CAS) · 제이더블유 관세법인 · 내부 업무용</footer>
+      <footer className="site-footer">JW Customs Audit System (J-CAS) · 제이더블유 관세법인</footer>
     </main>
   );
 }

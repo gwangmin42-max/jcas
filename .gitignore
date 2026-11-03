@@ -3,3 +3,6 @@ node_modules
 *.xls
 *.xlsx
 !sample/.gitkeep
+dev.log
+*.tsbuildinfo
+.env*.local

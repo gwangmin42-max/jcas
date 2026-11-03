@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readLines, verifyLines } from "@/lib/verify";
 import { buildReport } from "@/lib/report";
 
+export const maxDuration = 30;
+
 export async function POST(req: NextRequest) {
   try {
     const file = (await req.formData()).get("file") as File | null;

@@ -59,17 +59,17 @@ export interface VerifyResult {
   findings: Finding[];
 }
 
-type Raw = Record<string, unknown>;
+export type Raw = Record<string, unknown>;
 
-const str = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
-const num = (v: unknown) => {
+export const str = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
+export const num = (v: unknown) => {
   if (typeof v === "number") return v;
   const n = Number(str(v).replace(/,/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
 
 // 열 이름이 파일마다 조금씩 달라도 읽을 수 있게, 공백을 없앤 이름으로 찾는다.
-function makeGetter(row: Raw) {
+export function makeGetter(row: Raw) {
   const index = new Map<string, string>();
   for (const key of Object.keys(row)) index.set(key.replace(/\s/g, ""), key);
   return (...names: string[]) => {
@@ -81,12 +81,17 @@ function makeGetter(row: Raw) {
   };
 }
 
-export function readLines(buffer: Buffer): LineRow[] {
+export function readRaw(buffer: Buffer): Raw[] {
   const wb = XLSX.read(buffer, { type: "buffer" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("시트를 찾을 수 없습니다");
   const raws = XLSX.utils.sheet_to_json<Raw>(sheet, { defval: "" });
   if (raws.length === 0) throw new Error("데이터가 없습니다");
+  return raws;
+}
+
+export function readLines(source: Buffer | Raw[]): LineRow[] {
+  const raws = Buffer.isBuffer(source) ? readRaw(source) : source;
 
   const probe = makeGetter(raws[0]);
   if (probe("신고번호") === undefined || probe("세번부호") === undefined) {
