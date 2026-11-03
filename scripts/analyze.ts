@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { analyze, countByArea } from "../lib/analysis";
 
 const file = process.argv[2];
-const a = analyze(readFileSync(file), "HK파워 수입실적.xls");
+const a = analyze(readFileSync(file), file);
 console.log(JSON.stringify(a.meta, null, 1));
 console.log("areas", countByArea(a));
 console.log("hs top", a.hs.top.slice(0, 3));
