@@ -1,5 +1,4 @@
 import Link from "next/link";
-import BrandBanner from "@/components/BrandBanner";
 import HeroIllustration from "@/components/HeroIllustration";
 
 const TRUST = [
@@ -103,11 +102,8 @@ export default function Home() {
     <main className="home">
       <section className="hero">
         <div className="hero-inner">
-          <div className="hero-banner">
-            <BrandBanner />
-          </div>
           <div>
-            <p className="eyebrow">J-CAS · 관세 성실신고 확인제도 대비</p>
+            <p className="eyebrow">관세 성실신고 확인제도 대비</p>
             <h1>
               확인서를 작성하기 전,
               <br />

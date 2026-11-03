@@ -96,3 +96,14 @@ Watchpack Error (stats): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys
  GET / 200 in 156ms
  ✓ Compiled /verify in 418ms (1008 modules)
  GET /verify 200 in 627ms
+ GET / 200 in 213ms
+Watchpack Error (stats): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys'
+Watchpack Error (stats): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys'
+Watchpack Error (stats): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys'
+ ✓ Compiled in 541ms (1002 modules)
+ GET / 200 in 233ms
+ ✓ Compiled in 510ms (1018 modules)
+ GET / 200 in 281ms
+ ✓ Compiled /verify in 151ms (615 modules)
+ GET /verify 200 in 416ms
+ GET / 200 in 216ms

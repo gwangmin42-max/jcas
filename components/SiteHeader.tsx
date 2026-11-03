@@ -8,8 +8,7 @@ export default function SiteHeader() {
         <Link href="/" className="brand">
           <Image src="/jw-logo.png" alt="JW" width={36} height={29} priority />
           <span className="brand-text">
-            <b>JW Customs Audit System</b>
-            <small>J-CAS · 제이더블유 관세법인</small>
+            <b>JW CUSTOMS AUDIT SYSTEM</b>
           </span>
         </Link>
         <nav className="site-nav">
