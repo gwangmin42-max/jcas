@@ -28,7 +28,7 @@ export default function LoginPage() {
     <main className="login">
       <form className="card login-card" onSubmit={submit}>
         <h1>JW CUSTOMS AUDIT SYSTEM</h1>
-        <p className="sub">제공받은 비밀번호를 입력해 주세요.</p>
+        <p className="sub">수입신고 적정성 검증 서비스입니다. 발급받은 접속 비밀번호를 입력해 주십시오.</p>
         <input
           type="password"
           value={password}

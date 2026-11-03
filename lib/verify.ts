@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 
-// UNI-PASS 수입신고 내역(란 단위) 엑셀을 읽어, 성실신고 확인 시 관세사가 다시 봐야 할 "의심 건"을 뽑는다.
+// UNI-PASS 수입신고 내역(란 단위) 엑셀을 읽어, 성실신고 확인 시 전문 검토가 필요한 신고건을 선별한다.
 // 오류를 확정하는 도구가 아니라 확인 대상을 좁혀 주는 도구다 (최종 판단은 전문가).
 
 export type Severity = "높음" | "중간" | "참고";
@@ -249,7 +249,7 @@ export function verifyLines(lines: LineRow[]): VerifyResult {
     if (seenDeclarations.has(l.declarationNo)) continue;
     seenDeclarations.add(l.declarationNo);
     if (["FOB", "EXW", "FCA", "FAS"].includes(l.incoterm.toUpperCase()) && l.headerFreight === 0) {
-      add(l, "운임 가산 누락 의심", "과세가격", "높음", `인도조건 ${l.incoterm}인데 신고서에 운임이 0원 — 과세가격에 가산할 운임이 빠졌는지 확인`);
+      add(l, "운임 가산 여부 검토", "과세가격", "높음", `인도조건 ${l.incoterm}이나 신고서에 운임이 0원으로 기재됨 — 과세가격에 가산할 운임의 반영 여부 검토 필요`);
     }
   }
   // (b) 신고서 전체 결제금액과 란 합계가 어긋남

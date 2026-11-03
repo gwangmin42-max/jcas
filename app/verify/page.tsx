@@ -57,8 +57,8 @@ export default function Home() {
 
   return (
     <main>
-      <h1>수입신고 검증</h1>
-      <p className="sub">UNI-PASS 수입신고 내역(란 단위) 엑셀을 올리면, 성실신고 확인 때 다시 볼 의심 건을 찾아 줍니다.</p>
+      <h1>수입신고 적정성 검증</h1>
+      <p className="sub">UNI-PASS 수입신고 내역(란 단위) 파일을 업로드하면 품목분류, 관세율, FTA 협정세율 및 과세가격의 정합성을 분석하여 전문 검토가 필요한 신고건을 선별합니다.</p>
 
       <div className="card">
         <div
@@ -73,7 +73,7 @@ export default function Home() {
             if (dropped) verify(dropped);
           }}
         >
-          {loading ? "검증 중..." : file ? `${file.name} (다른 파일을 올리려면 클릭)` : "여기에 엑셀 파일을 끌어다 놓거나 클릭해서 선택하세요"}
+          {loading ? "분석 중..." : file ? `${file.name} (다른 파일을 선택하려면 클릭)` : "분석할 수입신고 내역 파일(엑셀)을 이곳에 끌어다 놓거나 클릭하여 선택해 주십시오"}
         </div>
         <input
           ref={inputRef}
@@ -83,7 +83,7 @@ export default function Home() {
           onChange={(e) => { const picked = e.target.files?.[0]; if (picked) verify(picked); e.target.value = ""; }}
         />
         {error && <div className="err">{error}</div>}
-        <p className="foot">파일은 검증에만 사용되며 서버에 저장되지 않습니다. (최대 4MB)</p>
+        <p className="foot">업로드 자료는 검증 목적으로만 처리하며 서버에 별도로 보관하지 않습니다. (최대 4MB)</p>
       </div>
 
       {result && (
@@ -93,15 +93,15 @@ export default function Home() {
               <div className="stat"><b>{result.summary.declarationCount.toLocaleString()}건</b><span>신고 ({result.summary.lineCount.toLocaleString()}란)</span></div>
               <div className="stat"><b>{result.summary.dateFrom} ~ {result.summary.dateTo}</b><span>신고 기간</span></div>
               <div className="stat"><b>{(result.summary.totalTaxBaseKrw / 100000000).toFixed(1)}억원</b><span>과세가격 합계</span></div>
-              <div className="stat"><b>{result.summary.findingCount.toLocaleString()}건</b><span>확인 필요 (높음 {result.summary.bySeverity.높음})</span></div>
+              <div className="stat"><b>{result.summary.findingCount.toLocaleString()}건</b><span>검토 필요 (우선 검토 {result.summary.bySeverity.높음})</span></div>
             </div>
             {result.skippedChecks.map((note) => <div className="note" key={note}>{note}</div>)}
           </div>
 
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <b>확인 필요 목록</b>
-              <button onClick={download}>리포트 엑셀 다운로드</button>
+              <b>검토대상 목록</b>
+              <button onClick={download}>검증 보고서(엑셀) 다운로드</button>
             </div>
             <div className="filters">
               {(["전체", ...CATEGORIES] as const).map((c) => (
@@ -113,7 +113,7 @@ export default function Home() {
             <div className="tablewrap">
               <table>
                 <thead>
-                  <tr><th>중요도</th><th>검사 항목</th><th>신고번호-란</th><th>세번</th><th>품명</th><th>내용</th></tr>
+                  <tr><th>구분</th><th>검토항목</th><th>신고번호-란</th><th>HS CODE</th><th>품명</th><th>주요 확인사항</th></tr>
                 </thead>
                 <tbody>
                   {findings.map((f, i) => (
@@ -128,9 +128,9 @@ export default function Home() {
                   ))}
                 </tbody>
               </table>
-              {findings.length === 0 && <p style={{ padding: 16, color: "var(--muted)" }}>해당 분야에서 확인 필요 항목이 없습니다.</p>}
+              {findings.length === 0 && <p style={{ padding: 16, color: "var(--muted)" }}>해당 분야에서 검토가 필요한 항목이 확인되지 않았습니다.</p>}
             </div>
-            <p className="foot">오류 확정이 아니라 확인 대상을 좁힌 결과입니다. 최종 판단은 전문가가 합니다.</p>
+            <p className="foot">본 검증 결과는 수입신고 데이터에 기반한 사전 분석자료로서 신고내용의 법적 적정성에 대한 최종 확인을 의미하지 않으며, 관련 증빙자료와 관계 법령에 근거한 전문가의 검토가 필요합니다.</p>
           </div>
         </>
       )}

@@ -12,7 +12,7 @@ const serif = Noto_Serif_KR({
 
 export const metadata: Metadata = {
   title: "JW Customs Audit System (J-CAS)",
-  description: "J-CAS - 관세 성실신고 확인제도 대비, UNI-PASS 수입신고 내역에서 다시 확인할 건을 선별하는 검증 시스템",
+  description: "JW관세법인의 수입신고 적정성 검증 서비스. UNI-PASS 수입신고 내역을 분석하여 관세 성실신고 확인제도 대응을 지원합니다.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
