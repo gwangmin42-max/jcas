@@ -371,8 +371,8 @@ export default function ReportView({ a }: { a: Analysis }) {
       </Section>
 
       <footer className="rp-sign">
-        <div><span>작성</span><i /></div>
-        <div><span>검토 관세사</span><i /></div>
+        <div><span>작성 (JW Customs Audit System)</span><i /></div>
+        <div><span>검토 관세사 (직인)</span><i /></div>
         <div><span>검토일</span><i /></div>
       </footer>
       <p className="rp-disclaimer">
