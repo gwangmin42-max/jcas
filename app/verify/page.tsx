@@ -141,7 +141,7 @@ export default function Home() {
                   {findings.map((f, i) => (
                     <tr key={i}>
                       <td><span className={`sev ${f.severity}`}>{f.severity}</span></td>
-                      <td>{f.rule}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{f.rule}</td>
                       <td style={{ whiteSpace: "nowrap" }}>{f.declarationNo ? `${f.declarationNo}-${f.lineNo}` : "-"}</td>
                       <td>{f.hsCode}</td>
                       <td>{f.itemName}</td>

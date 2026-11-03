@@ -249,7 +249,7 @@ export function verifyLines(lines: LineRow[]): VerifyResult {
     if (seenDeclarations.has(l.declarationNo)) continue;
     seenDeclarations.add(l.declarationNo);
     if (["FOB", "EXW", "FCA", "FAS"].includes(l.incoterm.toUpperCase()) && l.headerFreight === 0) {
-      add(l, "운임 가산 여부 검토", "과세가격", "높음", `인도조건 ${l.incoterm}이나 신고서에 운임이 0원으로 기재됨 — 과세가격에 가산할 운임의 반영 여부 검토 필요`);
+      add(l, "운임 가산 여부", "과세가격", "높음", `인도조건 ${l.incoterm}이나 신고서에 운임이 0원으로 기재됨 — 과세가격에 가산할 운임의 반영 여부 검토 필요`);
     }
   }
   // (b) 신고서 전체 결제금액과 란 합계가 어긋남

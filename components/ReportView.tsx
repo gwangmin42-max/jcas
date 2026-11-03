@@ -343,7 +343,7 @@ export default function ReportView({ a }: { a: Analysis }) {
         </div>
 
         <h3>5.7 기타 검토대상</h3>
-        <FindingTable rows={priceFindings.filter((f) => !["단가 적정성 검토", "단가·수량·금액 산식 불일치"].includes(f.rule))} />
+        <FindingTable rows={priceFindings.filter((f) => !["단가 적정성", "단가·수량·금액 산식 불일치"].includes(f.rule))} />
         <GuideBlock rules={rulesIn(priceFindings)} />
       </Section>
 

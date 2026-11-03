@@ -419,7 +419,7 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
     const low = f.ratio < 1;
     const line = lineByKey.get(`${f.declarationNo}|${f.lineNo}`);
     extra.push({
-      rule: "단가 적정성 검토",
+      rule: "단가 적정성",
       category: "과세가격",
       severity: f.severity,
       declarationNo: f.declarationNo,
@@ -445,7 +445,7 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
   for (const d of fobNoInsurance) {
     const line = firstLineOf(d.declarationNo);
     extra.push({
-      rule: "보험료 가산 여부 검토",
+      rule: "보험료 가산 여부",
       category: "과세가격",
       severity: "참고",
       declarationNo: d.declarationNo,
@@ -467,7 +467,7 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
       message: `${c.product} (${c.basis}) — ${c.note}. 해당 세번 ${c.lines}란, 과세가격 ${fmt(c.taxBaseKrw)}원`,
     });
   }
-  // 기본 검증의 '단가 이상치'(과세가격 ÷ 수량)는 규격 단위 '단가 적정성 검토'로 대체한다
+  // 기본 검증의 '단가 이상치'(과세가격 ÷ 수량)는 규격 단위 '단가 적정성'로 대체한다
   const severityOrder: Record<Severity, number> = { 높음: 0, 중간: 1, 참고: 2 };
   const findings = [...verify.findings.filter((f) => f.rule !== "단가 이상치"), ...extra].sort(
     (a, b) => severityOrder[a.severity] - severityOrder[b.severity] || a.declarationNo.localeCompare(b.declarationNo) || a.lineNo.localeCompare(b.lineNo)
