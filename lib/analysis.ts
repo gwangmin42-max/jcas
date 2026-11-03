@@ -107,6 +107,42 @@ export interface RuleSummary {
   taxBaseKrw: number; // 해당 란들의 과세가격 합계
 }
 
+export interface YearlyPrice {
+  name: string;
+  hsCode: string;
+  payMethod: string;
+  currency: string;
+  unit: string;
+  totalAmount: number;
+  years: Record<string, { n: number; unitPrice: number }>;
+}
+
+export interface GratisRow {
+  declarationNo: string;
+  declDate: string;
+  tradeType: string;
+  payMethod: string;
+  supplier: string;
+  itemName: string;
+  taxBaseKrw: number;
+}
+
+export interface ReductionRow {
+  year: string;
+  code: string;
+  lines: number;
+  taxBaseKrw: number;
+  reducedDutyKrw: number;
+}
+
+export interface FtaYearRow {
+  year: string;
+  rateType: string;
+  lines: number;
+  taxBaseKrw: number;
+  dutyKrw: number;
+}
+
 export interface SupplierGap {
   name: string;
   hsCode: string;
@@ -122,6 +158,15 @@ export interface Analysis {
   ruleSummary: RuleSummary[];
   exposure: { lines: number; taxBaseKrw: number; dutyKrw: number };
   grade: { label: string; note: string };
+  detail: {
+    years: string[];
+    yearly: YearlyPrice[];
+    yearTotals: { year: string; decls: number; taxBaseKrw: number; dutyKrw: number }[];
+    gratis: GratisRow[];
+    reduction: ReductionRow[];
+    ftaYearly: FtaYearRow[];
+    exemptLines: number;
+  };
   meta: {
     sourceName: string;
     generatedAt: string;
@@ -499,6 +544,82 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
     dutyKrw: lowFlags.reduce((a, f) => a + f.exposureDutyKrw, 0),
   };
 
+  // ── 보고서(Word)용 연도별 집계 ──
+  const yearOf = (d: string) => d.slice(0, 4);
+  const years = [...new Set(lines.map((l) => yearOf(l.declDate)).filter(Boolean))].sort();
+  const declById = new Map(decls.map((d) => [d.declarationNo, d]));
+  const yearlyMap = new Map<string, { row: YearlyPrice; acc: Map<string, { decls: Set<string>; amount: number; qty: number }> }>();
+  for (const sp of specs) {
+    if (!(sp.unitPrice > 0 && sp.qty > 0 && sp.amount >= 1)) continue;
+    const pay = declById.get(sp.declarationNo)?.payMethod ?? "";
+    const name = sp.spec || sp.itemName;
+    const key = [sp.hsCode, normalize(name), pay, sp.currency, sp.unit].join("|");
+    let entry = yearlyMap.get(key);
+    if (!entry) {
+      entry = { row: { name, hsCode: sp.hsCode, payMethod: pay, currency: sp.currency, unit: sp.unit, totalAmount: 0, years: {} }, acc: new Map() };
+      yearlyMap.set(key, entry);
+    }
+    entry.row.totalAmount += sp.amount;
+    const y = yearOf(sp.declDate);
+    const cell = entry.acc.get(y) ?? { decls: new Set<string>(), amount: 0, qty: 0 };
+    cell.decls.add(sp.declarationNo);
+    cell.amount += sp.amount;
+    cell.qty += sp.qty;
+    entry.acc.set(y, cell);
+  }
+  const yearly = [...yearlyMap.values()]
+    .map(({ row, acc }) => {
+      for (const [y, c] of acc) row.years[y] = { n: c.decls.size, unitPrice: c.amount / c.qty };
+      return row;
+    })
+    .sort((x, y) => y.totalAmount - x.totalAmount)
+    .slice(0, 25);
+  const yearTotals = years.map((y) => {
+    const ls = lines.filter((l) => yearOf(l.declDate) === y);
+    return { year: y, decls: new Set(ls.map((l) => l.declarationNo)).size, taxBaseKrw: ls.reduce((a, l) => a + l.taxBaseKrw, 0), dutyKrw: ls.reduce((a, l) => a + l.dutyAmount, 0) };
+  });
+  // 무상 성격 후보: 결제방법 GN 이거나 거래구분이 일반수입(11)이 아닌 신고 (코드 정의는 UNI-PASS 코드표로 확인 필요)
+  const gratis: GratisRow[] = decls
+    .filter((d) => d.payMethod.toUpperCase() === "GN" || (d.tradeType && d.tradeType !== "11"))
+    .map((d) => ({
+      declarationNo: d.declarationNo,
+      declDate: d.declDate,
+      tradeType: d.tradeType,
+      payMethod: d.payMethod,
+      supplier: d.supplier,
+      itemName: [...new Set((linesByDecl.get(d.declarationNo) ?? []).map((l) => l.itemName))].slice(0, 3).join(", "),
+      taxBaseKrw: d.taxBaseKrw,
+    }))
+    .sort((x, y) => y.taxBaseKrw - x.taxBaseKrw);
+  const reductionMap = new Map<string, ReductionRow>();
+  for (const l of lines) {
+    if (!(l.exemptionType || l.exemptDuty || l.reducedDuty)) continue;
+    const key = yearOf(l.declDate) + "|" + (l.exemptionType || "(구분없음)");
+    const r = reductionMap.get(key) ?? { year: yearOf(l.declDate), code: l.exemptionType || "(구분없음)", lines: 0, taxBaseKrw: 0, reducedDutyKrw: 0 };
+    r.lines++;
+    r.taxBaseKrw += l.taxBaseKrw;
+    r.reducedDutyKrw += l.exemptDuty + l.reducedDuty;
+    reductionMap.set(key, r);
+  }
+  const ftaMap = new Map<string, FtaYearRow>();
+  for (const l of lines) {
+    const key = yearOf(l.declDate) + "|" + l.rateType;
+    const r = ftaMap.get(key) ?? { year: yearOf(l.declDate), rateType: l.rateType, lines: 0, taxBaseKrw: 0, dutyKrw: 0 };
+    r.lines++;
+    r.taxBaseKrw += l.taxBaseKrw;
+    r.dutyKrw += l.dutyAmount;
+    ftaMap.set(key, r);
+  }
+  const detail = {
+    years,
+    yearly,
+    yearTotals,
+    gratis,
+    reduction: [...reductionMap.values()].sort((x, y) => x.year.localeCompare(y.year) || x.code.localeCompare(y.code)),
+    ftaYearly: [...ftaMap.values()].sort((x, y) => x.year.localeCompare(y.year) || x.rateType.localeCompare(y.rateType)),
+    exemptLines: lines.filter((l) => l.exemptionType || l.exemptDuty || l.reducedDuty).length,
+  };
+
   const highShare = lines.length > 0 ? bySeverity.높음 / lines.length : 0;
   const grade =
     bySeverity.높음 === 0
@@ -524,6 +645,7 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
     ruleSummary,
     exposure,
     grade,
+    detail,
     meta: {
       sourceName,
       generatedAt: new Date().toISOString(),

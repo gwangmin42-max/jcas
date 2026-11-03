@@ -40,11 +40,11 @@ export default function Home() {
     setLoading(false);
   }
 
-  async function download() {
+  async function download(kind: "xlsx" | "docx" = "xlsx") {
     if (!file) return;
     const body = new FormData();
     body.append("file", file);
-    const res = await fetch("/api/report", { method: "POST", body });
+    const res = await fetch(kind === "docx" ? "/api/docx" : "/api/report", { method: "POST", body });
     if (!res.ok) {
       setError((await res.json()).error ?? "리포트 생성에 실패했습니다");
       return;
@@ -52,7 +52,7 @@ export default function Home() {
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement("a");
     a.href = url;
-    a.download = "성실신고_검증결과.xlsx";
+    a.download = kind === "docx" ? "성실신고_확인보고서.docx" : "성실신고_검증결과.xlsx";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -113,7 +113,8 @@ export default function Home() {
                 <span>관세조사 대비 상세 보고서입니다. PDF로 저장하려면 인쇄 창에서 대상을 'PDF로 저장'으로 선택해 주십시오.</span>
                 <span style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => window.print()}>PDF로 저장 / 인쇄</button>
-                  <button onClick={download}>엑셀 다운로드</button>
+                  <button onClick={() => download("docx")}>확인 보고서(Word)</button>
+                  <button onClick={() => download("xlsx")}>엑셀 다운로드</button>
                 </span>
               </div>
               <ReportView a={result} />
@@ -123,7 +124,10 @@ export default function Home() {
           {view === "list" && <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <b>검토대상 목록</b>
-              <button onClick={download}>검증 보고서(엑셀) 다운로드</button>
+              <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => download("docx")}>성실신고 확인 보고서(Word)</button>
+                <button onClick={() => download("xlsx")}>검증 결과(엑셀)</button>
+              </span>
             </div>
             <div className="filters">
               {(["전체", ...CATEGORIES] as const).map((c) => (
