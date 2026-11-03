@@ -172,7 +172,7 @@ export default function Home() {
 
       <section id="overview" className="section">
         <div className="section-inner">
-          <h2>관세 성실신고 확인제도</h2>
+          <h2>1. 관세 성실신고 확인제도</h2>
           <p className="section-lede">
             관세 성실신고 확인제도는 수입기업이 관세사 등 전문가를 통해 납세신고 내용의 적정성을 자율적으로 검증하고, 그 결과를
             세관에 제출하도록 하는 제도입니다.
@@ -203,7 +203,7 @@ export default function Home() {
 
       <section id="process" className="section alt">
         <div className="section-inner">
-          <h2>관세 성실신고 확인 절차</h2>
+          <h2>2. 관세 성실신고 확인 절차</h2>
           <p className="section-lede">
             관세 성실신고 확인제도는 대상 사업자 지정, 연간 수입신고 내역 검토, 성실신고 확인서 제출 등의 절차로 운영될
             예정입니다.
@@ -233,7 +233,7 @@ export default function Home() {
 
       <section id="checks" className="section">
         <div className="section-inner">
-          <h2>수입신고 주요 검증 항목</h2>
+          <h2>3. 수입신고 주요 검증 항목</h2>
           <p className="section-lede">
             UNI-PASS 수입신고 데이터를 활용하여 신고항목별 정합성을 분석하고, 관세·통관 실무상 추가 검토가 필요한 신고내역을
             식별합니다.
@@ -261,7 +261,7 @@ export default function Home() {
 
       <section id="results" className="section alt">
         <div className="section-inner">
-          <h2>검증 결과 및 보고서</h2>
+          <h2>4. 검증 결과 및 보고서</h2>
           <p className="section-lede">
             검증 완료 후 신고내역별 분석 결과를 확인할 수 있으며, 주요 검토사항은 엑셀 보고서로 제공합니다.
           </p>
@@ -292,7 +292,7 @@ export default function Home() {
 
       <section className="section">
         <div className="section-inner">
-          <h2>성실신고 확인제도 도입에 따른 기대효과</h2>
+          <h2>5. 성실신고 확인제도 도입에 따른 기대효과</h2>
           <p className="section-lede">
             관세 성실신고 확인제도는 기업의 자율적인 납세신고 검증을 기반으로 신고 정확성을 높이고 관세행정상 지원을 제공하는
             제도입니다.
@@ -317,7 +317,7 @@ export default function Home() {
 
       <section id="service" className="section alt">
         <div className="section-inner service">
-          <h2>JW관세법인의 관세신고 검증 서비스</h2>
+          <h2>6. JW관세법인의 관세신고 검증 서비스</h2>
           <p className="section-lede">수입신고 데이터의 정합성 검토는 관세 위험관리의 출발점입니다.</p>
           <p className="section-lede">
             JW관세법인은 수출입통관, 품목분류, 관세평가 및 FTA 분야의 실무 경험을 바탕으로 수입기업의 주요 신고사항을

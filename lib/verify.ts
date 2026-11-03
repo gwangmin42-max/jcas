@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 // 오류를 확정하는 도구가 아니라 확인 대상을 좁혀 주는 도구다 (최종 판단은 전문가).
 
 export type Severity = "높음" | "중간" | "참고";
-export type Category = "품목분류" | "세율·세액" | "FTA·원산지" | "과세가격";
+export type Category = "품목분류" | "세율·세액" | "FTA·원산지" | "수입요건" | "과세가격";
 
 export interface Finding {
   rule: string;
@@ -274,7 +274,7 @@ export function verifyLines(lines: LineRow[]): VerifyResult {
     group.forEach((l, i) => {
       const ratio = unit[i] / mid;
       if (ratio >= 3 || ratio <= 1 / 3) {
-        add(l, "단가 이상치", "과세가격", "중간", `단가 ${won(unit[i])}/${l.qtyUnit || "단위"}가 같은 품목 중앙값 ${won(mid)}의 ${ratio.toFixed(1)}배 (${group.length}건 비교)`);
+        add(l, "단가 이상치", "과세가격", "중간", `단가 ${won(unit[i])}/${l.qtyUnit || "단위"}가 같은 품목(동일 세번·품명·단위)의 단가를 작은 순으로 세웠을 때 가운데 값(중앙값) ${won(mid)}의 ${ratio.toFixed(1)}배 (${group.length}건 비교)`);
       }
     });
   }
@@ -287,7 +287,7 @@ export function verifyLines(lines: LineRow[]): VerifyResult {
       a.lineNo.localeCompare(b.lineNo)
   );
 
-  const byCategory: Record<Category, number> = { 품목분류: 0, "세율·세액": 0, "FTA·원산지": 0, 과세가격: 0 };
+  const byCategory: Record<Category, number> = { 품목분류: 0, "세율·세액": 0, "FTA·원산지": 0, 수입요건: 0, 과세가격: 0 };
   const bySeverity: Record<Severity, number> = { 높음: 0, 중간: 0, 참고: 0 };
   for (const f of findings) {
     byCategory[f.category]++;

@@ -1,4 +1,4 @@
-import { makeGetter, num, readLines, readRaw, str, verifyLines, type Finding, type LineRow, type Raw } from "./verify";
+import { makeGetter, num, readLines, readRaw, str, verifyLines, type Category, type Finding, type LineRow, type Raw, type Severity, type VerifyResult } from "./verify";
 import { matchRequirement } from "./importRequirements";
 
 // 과세가격 분야(품목분류 · 수입요건 · 과세가격) 분석. 외환요소 분야는 회계·은행 자료를 받은 뒤 별도로 추가한다.
@@ -92,6 +92,19 @@ export interface PriceFlag {
   amount: number;
   samples: number;
   supplier: string;
+  min: number;
+  max: number;
+  peers: { declarationNo: string; unitPrice: number }[];
+  exposureTaxBaseKrw: number; // 단가가 중앙값보다 낮은 건만: (중앙값 - 단가) × 수량을 원화로 환산한 과세가격 차이 추정
+  exposureDutyKrw: number; // 위 금액 × 해당 란 관세율
+}
+
+export interface RuleSummary {
+  rule: string;
+  category: Category;
+  severity: Severity; // 해당 항목 중 가장 높은 구분
+  count: number;
+  taxBaseKrw: number; // 해당 란들의 과세가격 합계
 }
 
 export interface SupplierGap {
@@ -105,6 +118,10 @@ export interface SupplierGap {
 }
 
 export interface Analysis {
+  summary: VerifyResult["summary"];
+  ruleSummary: RuleSummary[];
+  exposure: { lines: number; taxBaseKrw: number; dutyKrw: number };
+  grade: { label: string; note: string };
   meta: {
     sourceName: string;
     generatedAt: string;
@@ -330,12 +347,23 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
   for (const items of eligible) {
     const med = median(items.map((i) => i.unitPrice));
     if (med <= 0) continue;
+    const prices = items.map((i) => i.unitPrice);
     for (const item of items) {
       const ratio = item.unitPrice / med;
       const extreme = Math.max(ratio, 1 / ratio);
       if (extreme < 2) continue;
+      const line = lineByKey.get(`${item.declarationNo}|${item.lineNo}`);
+      const rate = line && line.lineAmount > 0 && line.taxBaseKrw > 0 ? line.taxBaseKrw / line.lineAmount : 0;
+      // 추정 차이는 해당 란 과세가격을 넘을 수 없다. 그룹 내 단가 폭이 50배를 넘으면 규격 구분이 불명확한 것으로 보고 추정에서 제외한다
+      const wide = Math.min(...prices) > 0 && Math.max(...prices) / Math.min(...prices) > 50;
+      const exposureTaxBaseKrw = ratio < 1 && !wide ? Math.min((med - item.unitPrice) * item.qty * rate, line?.taxBaseKrw ?? 0) : 0;
       allFlags.push({
-        severity: extreme >= 3 ? "높음" : "중간",
+        min: Math.min(...prices),
+        max: Math.max(...prices),
+        peers: items.filter((o) => o !== item).slice(0, 4).map((o) => ({ declarationNo: o.declarationNo, unitPrice: o.unitPrice })),
+        exposureTaxBaseKrw,
+        exposureDutyKrw: line ? (exposureTaxBaseKrw * line.dutyRate) / 100 : 0,
+        severity: extreme >= 3 && !wide ? "높음" : "중간",
         declarationNo: item.declarationNo,
         lineNo: item.lineNo,
         hsCode: item.hsCode,
@@ -352,7 +380,8 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
       });
     }
   }
-  allFlags.sort((a, b) => Math.max(b.ratio, 1 / b.ratio) - Math.max(a.ratio, 1 / a.ratio) || b.amount - a.amount);
+  // 우선 검토(높음) 먼저, 같은 구분에서는 추정 과세가격 차이가 큰 순, 그다음 이격이 큰 순
+  allFlags.sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "높음" ? -1 : 1) || b.exposureTaxBaseKrw - a.exposureTaxBaseKrw || Math.max(b.ratio, 1 / b.ratio) - Math.max(a.ratio, 1 / a.ratio));
 
   // 같은 규격을 서로 다른 공급자에게서 들여온 경우 공급자 간 단가 차이
   const supplierGaps: SupplierGap[] = [];
@@ -381,7 +410,120 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
   const dates = lines.map((l) => l.declDate).filter(Boolean).sort();
   const lineTax = (l: LineRow) => l.taxBaseKrw;
 
+  // ── 종합: 기본 검증 결과 + 규격 단위 분석 결과를 하나의 검토목록으로 합친다 ──
+  const fmt = (n: number) => Math.round(n).toLocaleString();
+  const fp = (n: number) => (n >= 100 ? fmt(n) : String(Number(n.toPrecision(4))));
+  const firstLineOf = (declarationNo: string) => linesByDecl.get(declarationNo)?.[0];
+  const extra: Finding[] = [];
+  for (const f of allFlags) {
+    const low = f.ratio < 1;
+    const line = lineByKey.get(`${f.declarationNo}|${f.lineNo}`);
+    extra.push({
+      rule: "단가 적정성 검토",
+      category: "과세가격",
+      severity: f.severity,
+      declarationNo: f.declarationNo,
+      lineNo: f.lineNo,
+      hsCode: f.hsCode,
+      itemName: line?.itemName ?? f.name,
+      message: `규격 '${f.name}' 단가 ${fp(f.unitPrice)} ${f.currency}/${f.unit}가 동일 세번·규격·단위 ${f.samples}건의 중앙값(가운데 값) ${fp(f.median)}의 ${f.ratio.toFixed(2)}배 (범위 ${fp(f.min)}~${fp(f.max)})${f.min > 0 && f.max / f.min > 50 ? ". 그룹 내 단가 폭이 매우 커 규격·수량단위 구분 확인 필요" : ""}${low && f.exposureTaxBaseKrw > 0 ? `. 중앙값 기준 추정 과세가격 차이 약 ${fmt(f.exposureTaxBaseKrw)}원` : ""}`,
+    });
+  }
+  for (const m of calcMismatchAll) {
+    const line = lineByKey.get(`${m.declarationNo}|${m.lineNo}`);
+    extra.push({
+      rule: "단가·수량·금액 산식 불일치",
+      category: "과세가격",
+      severity: "참고",
+      declarationNo: m.declarationNo,
+      lineNo: m.lineNo,
+      hsCode: line?.hsCode ?? "",
+      itemName: line?.itemName ?? m.name,
+      message: `'${m.name}' 신고 단가 ${m.declaredUnitPrice} × 수량 ${m.qty} ≠ 금액 ${fmt(m.amount)} (금액÷수량 = ${m.impliedUnitPrice.toFixed(4)}, 차이 ${m.diffPct.toFixed(1)}%)`,
+    });
+  }
+  for (const d of fobNoInsurance) {
+    const line = firstLineOf(d.declarationNo);
+    extra.push({
+      rule: "보험료 가산 여부 검토",
+      category: "과세가격",
+      severity: "참고",
+      declarationNo: d.declarationNo,
+      lineNo: line?.lineNo ?? "",
+      hsCode: line?.hsCode ?? "",
+      itemName: line?.itemName ?? "",
+      message: `인도조건 ${d.incoterm}이나 보험료가 0원으로 기재됨 — 구매자 부보 여부 확인 필요`,
+    });
+  }
+  for (const c of [...candidateMap.values()]) {
+    extra.push({
+      rule: "수입요건 확인 후보",
+      category: "수입요건",
+      severity: "참고",
+      declarationNo: "",
+      lineNo: "",
+      hsCode: c.hsCode,
+      itemName: c.names,
+      message: `${c.product} (${c.basis}) — ${c.note}. 해당 세번 ${c.lines}란, 과세가격 ${fmt(c.taxBaseKrw)}원`,
+    });
+  }
+  // 기본 검증의 '단가 이상치'(과세가격 ÷ 수량)는 규격 단위 '단가 적정성 검토'로 대체한다
+  const severityOrder: Record<Severity, number> = { 높음: 0, 중간: 1, 참고: 2 };
+  const findings = [...verify.findings.filter((f) => f.rule !== "단가 이상치"), ...extra].sort(
+    (a, b) => severityOrder[a.severity] - severityOrder[b.severity] || a.declarationNo.localeCompare(b.declarationNo) || a.lineNo.localeCompare(b.lineNo)
+  );
+
+  const declTax = new Map(decls.map((d) => [d.declarationNo, d.taxBaseKrw]));
+  const taxOfFinding = (f: Finding) => (f.lineNo ? lineByKey.get(`${f.declarationNo}|${f.lineNo}`)?.taxBaseKrw ?? 0 : declTax.get(f.declarationNo) ?? 0);
+  const ruleMap = new Map<string, RuleSummary>();
+  const byCategory: Record<Category, number> = { 품목분류: 0, "세율·세액": 0, "FTA·원산지": 0, 수입요건: 0, 과세가격: 0 };
+  const bySeverity: Record<Severity, number> = { 높음: 0, 중간: 0, 참고: 0 };
+  for (const f of findings) {
+    byCategory[f.category]++;
+    bySeverity[f.severity]++;
+    const cur = ruleMap.get(f.rule);
+    if (cur) {
+      cur.count++;
+      cur.taxBaseKrw += taxOfFinding(f);
+      if (severityOrder[f.severity] < severityOrder[cur.severity]) cur.severity = f.severity;
+    } else {
+      ruleMap.set(f.rule, { rule: f.rule, category: f.category, severity: f.severity, count: 1, taxBaseKrw: taxOfFinding(f) });
+    }
+  }
+  const ruleSummary = [...ruleMap.values()].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity] || b.count - a.count);
+
+  const lowFlags = allFlags.filter((f) => f.exposureTaxBaseKrw > 0);
+  const exposure = {
+    lines: lowFlags.length,
+    taxBaseKrw: lowFlags.reduce((a, f) => a + f.exposureTaxBaseKrw, 0),
+    dutyKrw: lowFlags.reduce((a, f) => a + f.exposureDutyKrw, 0),
+  };
+
+  const highShare = lines.length > 0 ? bySeverity.높음 / lines.length : 0;
+  const grade =
+    bySeverity.높음 === 0
+      ? { label: "양호", note: "우선 검토 대상으로 분류된 항목이 확인되지 않았습니다." }
+      : highShare <= 0.01
+        ? { label: "보통", note: "우선 검토 항목이 소수에 그치며, 개별 건 확인으로 대응 가능한 수준입니다." }
+        : highShare <= 0.05
+          ? { label: "주의", note: "우선 검토 항목이 일정 비중으로 확인되어, 증빙 정리와 신고 정정 여부 검토가 필요합니다." }
+          : { label: "중점 검토", note: "우선 검토 항목의 비중이 높아, 관세조사 전 전반적인 신고 내용 점검이 필요합니다." };
+
   return {
+    summary: {
+      lineCount: lines.length,
+      declarationCount: decls.length,
+      dateFrom: dates[0] ?? "",
+      dateTo: dates[dates.length - 1] ?? "",
+      totalTaxBaseKrw: lines.reduce((a, l) => a + l.taxBaseKrw, 0),
+      totalDuty: lines.reduce((a, l) => a + l.dutyAmount, 0),
+      findingCount: findings.length,
+      byCategory,
+      bySeverity,
+    },
+    ruleSummary,
+    exposure,
+    grade,
     meta: {
       sourceName,
       generatedAt: new Date().toISOString(),
@@ -424,16 +566,16 @@ export function analyze(buffer: Buffer, sourceName: string): Analysis {
       groupsAnalyzed: groups.length,
       groupsEligible: eligible.length,
       coveragePct: totalAmountAll > 0 ? (coveredAmount / totalAmountAll) * 100 : 0,
-      flags: allFlags.slice(0, 30),
+      flags: allFlags.slice(0, 200),
       flagTotal: allFlags.length,
-      calcMismatch: calcMismatchAll.slice(0, 15),
+      calcMismatch: calcMismatchAll.slice(0, 100),
       calcMismatchTotal: calcMismatchAll.length,
       microLines,
-      supplierGaps: supplierGaps.slice(0, 12),
+      supplierGaps: supplierGaps.slice(0, 50),
       supplierDist: dist(decls, (d) => d.supplier, (d) => d.taxBaseKrw),
       monthly: dist(decls, (d) => d.declDate.slice(0, 6), (d) => d.taxBaseKrw).sort((a, b) => a.label.localeCompare(b.label)),
     },
-    findings: verify.findings,
+    findings,
     skipped,
   };
 }

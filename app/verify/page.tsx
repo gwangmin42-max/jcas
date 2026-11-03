@@ -1,14 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { VerifyResult, Category } from "@/lib/verify";
+import type { Category } from "@/lib/verify";
+import type { Analysis } from "@/lib/analysis";
+import ReportView from "@/components/ReportView";
 
-const CATEGORIES: Category[] = ["품목분류", "세율·세액", "FTA·원산지", "과세가격"];
+const CATEGORIES: Category[] = ["품목분류", "세율·세액", "FTA·원산지", "수입요건", "과세가격"];
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<VerifyResult | null>(null);
+  const [result, setResult] = useState<Analysis | null>(null);
+  const [view, setView] = useState<"list" | "report">("list");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
@@ -21,6 +24,7 @@ export default function Home() {
     }
     setFile(selected);
     setResult(null);
+    setView("list");
     setError("");
     setLoading(true);
     const body = new FormData();
@@ -95,10 +99,28 @@ export default function Home() {
               <div className="stat"><b>{(result.summary.totalTaxBaseKrw / 100000000).toFixed(1)}억원</b><span>과세가격 합계</span></div>
               <div className="stat"><b>{result.summary.findingCount.toLocaleString()}건</b><span>검토 필요 (우선 검토 {result.summary.bySeverity.높음})</span></div>
             </div>
-            {result.skippedChecks.map((note) => <div className="note" key={note}>{note}</div>)}
+            {result.skipped.map((note) => <div className="note" key={note}>{note}</div>)}
           </div>
 
-          <div className="card">
+          <div className="tabs no-print">
+            <button className={`chip${view === "list" ? " on" : ""}`} onClick={() => setView("list")}>검토대상 목록</button>
+            <button className={`chip${view === "report" ? " on" : ""}`} onClick={() => setView("report")}>상세 보고서</button>
+          </div>
+
+          {view === "report" && (
+            <>
+              <div className="card no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <span>관세조사 대비 상세 보고서입니다. PDF로 저장하려면 인쇄 창에서 대상을 'PDF로 저장'으로 선택해 주십시오.</span>
+                <span style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => window.print()}>PDF로 저장 / 인쇄</button>
+                  <button onClick={download}>엑셀 다운로드</button>
+                </span>
+              </div>
+              <ReportView a={result} />
+            </>
+          )}
+
+          {view === "list" && <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <b>검토대상 목록</b>
               <button onClick={download}>검증 보고서(엑셀) 다운로드</button>
@@ -120,7 +142,7 @@ export default function Home() {
                     <tr key={i}>
                       <td><span className={`sev ${f.severity}`}>{f.severity}</span></td>
                       <td>{f.rule}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>{f.declarationNo}-{f.lineNo}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{f.declarationNo ? `${f.declarationNo}-${f.lineNo}` : "-"}</td>
                       <td>{f.hsCode}</td>
                       <td>{f.itemName}</td>
                       <td>{f.message}</td>
@@ -131,7 +153,7 @@ export default function Home() {
               {findings.length === 0 && <p style={{ padding: 16, color: "var(--muted)" }}>해당 분야에서 검토가 필요한 항목이 확인되지 않았습니다.</p>}
             </div>
             <p className="foot">본 검증 결과는 수입신고 데이터에 기반한 사전 분석자료로서 신고내용의 법적 적정성에 대한 최종 확인을 의미하지 않으며, 관련 증빙자료와 관계 법령에 근거한 전문가의 검토가 필요합니다.</p>
-          </div>
+          </div>}
         </>
       )}
     </main>
