@@ -92,16 +92,18 @@ function table(headers: string[], rows: string[][], weights: number[], rightFrom
   });
 }
 
-// 데이터 근거의 검토 의견: 주의가 필요한 부분 + 소명자료 대비
+// 데이터 근거의 검토 의견 (❍ 항목 · 확인 사실 → 판단 · 소명자료 대비)
+function opinionItems(o: Opinion, withTitle = true): Paragraph[] {
+  const out: Paragraph[] = [];
+  if (withTitle) out.push(circle(`[${o.severity}] ${o.rule}`));
+  for (const f of o.facts) out.push(dot(f));
+  out.push(arrow(o.judgement));
+  out.push(arrow(`소명자료 대비: ${o.prepare.join(" / ")}`));
+  return out;
+}
 function opinionBlock(list: Opinion[]): Paragraph[] {
   if (list.length === 0) return [];
-  const out: Paragraph[] = [para("▶ 검토 의견", { bold: true, size: 21, color: "B45309", before: 200, after: 60 })];
-  for (const o of list) {
-    out.push(para(`[${o.severity}] ${o.rule}`, { bold: true, size: 20, before: 80, after: 40, indent: 280 }));
-    out.push(para(`주의: ${o.attention}`, { size: 19, indent: 560, hanging: 0 }));
-    out.push(para(`소명자료 대비: ${o.prepare.join(" / ")}`, { size: 19, color: "374151", indent: 560, hanging: 0 }));
-  }
-  return out;
+  return [para("▶ 검토 의견 (주의 사항 및 소명자료 대비)", { bold: true, size: 21, color: "B45309", before: 200, after: 40 }), ...list.flatMap((o) => opinionItems(o))];
 }
 
 const gap = () => para("", { after: 60 });
@@ -359,11 +361,7 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
   add(circle("종합 의견"));
   for (const t of overallComment(a, ops)) add(dot(t));
   add(circle("주의가 필요한 사항 및 소명자료 대비 (우선순위 순)"));
-  ops.forEach((o, i) => {
-    add(para(`${i + 1}) [${o.severity}] ${o.rule}`, { bold: true, size: 20, before: 100, after: 40, indent: 280 }));
-    add(arrow(o.attention));
-    add(dot(`소명자료 대비: ${o.prepare.join(" / ")}`));
-  });
+  for (const o of ops) add(...opinionItems(o));
   add(circle("검토 항목별 요약 및 권고 조치"));
   add(
     table(
