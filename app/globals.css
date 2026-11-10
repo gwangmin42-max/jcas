@@ -160,6 +160,7 @@ main > .brand-banner { margin-bottom: 20px; }
 .btn-primary.solid:hover { background: var(--brand-deep); }
 .footer-legal { max-width: 820px; margin: 10px auto 0; text-align: center; font-size: 12px; line-height: 1.7; }
 .site-footer p { margin: 0; }
+.site-footer .footer-legal { margin: 10px auto 0; }
 @media (max-width: 900px) { .site-nav a:not(.nav-cta):nth-child(n+3) { display: none; } }
 
 /* 검증 보고서 (화면 + 인쇄/PDF) */
