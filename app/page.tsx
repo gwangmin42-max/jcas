@@ -341,12 +341,13 @@ export default function Home() {
       </section>
 
       <footer className="site-footer">
-        <p>JW Customs Audit System · 제이더블유 관세법인</p>
+        <p>© 2026 JW Customs Audit System · 제이더블유 관세법인. All rights reserved.</p>
         <p className="footer-legal">
           본 서비스는 JW관세법인이 자체 개발하여 운영하는 검증 프로그램이며, 관세청이 인증하거나 운영하는 시스템이 아닙니다.
           관세 성실신고 확인제도에 관한 내용은 관세청의 도입 추진 및 발표 내용을 기준으로 하며, 향후 확정되는 법령 및 세부
           운영기준에 따라 달라질 수 있습니다.
         </p>
+        <p className="footer-credit">CCA YKM</p>
       </footer>
     </main>
   );
