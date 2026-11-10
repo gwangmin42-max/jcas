@@ -16,6 +16,7 @@ import {
 } from "docx";
 import type { Analysis } from "./analysis";
 import { GENERAL_READINESS, GUIDE } from "./guidance";
+import { buildOpinions, opinionFor, overallComment, type Opinion } from "./narrative";
 
 // 성실신고 확인 보고서(Word). 수입신고 엑셀로 확인되는 내용만 본문에 싣고,
 // 추가 자료가 있어야 확인되는 영역은 맨 뒤 'Ⅳ. 확인 불가 영역'으로 모은다.
@@ -91,6 +92,18 @@ function table(headers: string[], rows: string[][], weights: number[], rightFrom
   });
 }
 
+// 데이터 근거의 검토 의견: 주의가 필요한 부분 + 소명자료 대비
+function opinionBlock(list: Opinion[]): Paragraph[] {
+  if (list.length === 0) return [];
+  const out: Paragraph[] = [para("▶ 검토 의견", { bold: true, size: 21, color: "B45309", before: 200, after: 60 })];
+  for (const o of list) {
+    out.push(para(`[${o.severity}] ${o.rule}`, { bold: true, size: 20, before: 80, after: 40, indent: 280 }));
+    out.push(para(`주의: ${o.attention}`, { size: 19, indent: 560, hanging: 0 }));
+    out.push(para(`소명자료 대비: ${o.prepare.join(" / ")}`, { size: 19, color: "374151", indent: 560, hanging: 0 }));
+  }
+  return out;
+}
+
 const gap = () => para("", { after: 60 });
 const emptyNote = (text: string) => para(text, { size: 19, color: "6B7280", indent: 280 });
 
@@ -99,6 +112,7 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
   const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   const years = detail.years;
   const find = (rule: string) => a.findings.filter((f) => f.rule === rule);
+  const ops = buildOpinions(a);
   const body: (Paragraph | Table)[] = [];
   const add = (...items: (Paragraph | Table)[]) => body.push(...items);
 
@@ -276,6 +290,8 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
     add(note("거래구분·결제방법 코드의 정의는 UNI-PASS 코드표로 확인해야 하며, 위 기준은 무상 성격 후보를 가려내기 위한 것입니다."));
   }
 
+  add(...opinionBlock(opinionFor(ops, ["단가 적정성", "단가·수량·금액 산식 불일치", "운임 가산 여부", "보험료 가산 여부", "공급자 간 단가 차이"])));
+
   // 2. 관세감면
   add(sec("2. 관세감면 분야"));
   if (detail.reduction.length === 0) {
@@ -301,6 +317,8 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
     add(arrow("실제 대상 여부는 품목 사양·정격에 따라 달라지므로 수출입공고·통합공고와 대조하고, 대상 품목은 KC 인증 등 요건 구비 증빙을 보관 필요"));
   }
 
+  add(...opinionBlock(opinionFor(ops, ["수입요건 확인 후보"])));
+
   // 4. 품목분류
   add(sec("4. 품목분류 분야"));
   const multi = find("동일 품명 세번 불일치");
@@ -312,6 +330,8 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
     if (multi.length > 30) add(note(`상위 30건만 표시하였으며, 전체는 엑셀 보고서의 '검토대상 상세내역' 시트에 있습니다.`));
     add(arrow("품명이 같아도 규격·성능이 달라 세번이 다를 수 있으므로 사양서·카탈로그로 구분 근거를 확인하고, 오류이면 수정신고를 검토. 분류가 불명확한 물품은 품목분류 사전심사 신청 검토"));
   }
+
+  add(...opinionBlock(opinionFor(ops, ["동일 품명 세번 불일치"])));
 
   // 5. FTA·세율
   add(sec("5. 세율 및 FTA·원산지 분야"));
@@ -331,10 +351,19 @@ export async function buildDocx(a: Analysis): Promise<Buffer> {
     add(arrow("같은 세번·원산지 품목에 협정세율이 적용되지 않은 건은 원산지증명서 보유 여부를 확인하여 경정청구 여부를 검토 (청구 기한 확인 필요)"));
   }
   for (const s of a.skipped) add(note(`※ ${s}`));
+  add(...opinionBlock(opinionFor(ops, ["FTA 적용 혼재", "FTA 세율인데 원산지증명 없음", "FTA 상대국과 원산지 불일치", "FTA 원산지증명서 번호 누락", "동일 세번 세율 불일치", "관세액 재계산 불일치", "란 금액 합계 불일치"])));
 
   // ── Ⅲ. 종합 의견 ─────────────────────────────────────────────────
   add(new Paragraph({ children: [new PageBreak()] }));
   add(major("Ⅲ. 종합 의견 및 조치 권고"));
+  add(circle("종합 의견"));
+  for (const t of overallComment(a, ops)) add(dot(t));
+  add(circle("주의가 필요한 사항 및 소명자료 대비 (우선순위 순)"));
+  ops.forEach((o, i) => {
+    add(para(`${i + 1}) [${o.severity}] ${o.rule}`, { bold: true, size: 20, before: 100, after: 40, indent: 280 }));
+    add(arrow(o.attention));
+    add(dot(`소명자료 대비: ${o.prepare.join(" / ")}`));
+  });
   add(circle("검토 항목별 요약 및 권고 조치"));
   add(
     table(
