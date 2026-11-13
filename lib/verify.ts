@@ -81,13 +81,60 @@ export function makeGetter(row: Raw) {
   };
 }
 
+const squash = (s: string) => s.replace(/[\s()\[\]_\-·.]/g, "").toLowerCase();
+
+// 세번부호가 "8501.10-0000", 8501100000(숫자), 850110000(앞자리 0 누락) 등으로 들어와도 숫자 10단위로 맞춘다.
+export function normalizeHs(v: unknown): string {
+  const raw = str(v);
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return raw;
+  if (digits.length === 9 || digits.length === 5) return digits.padStart(digits.length + 1, "0");
+  return digits;
+}
+
+// 원칙은 UNI-PASS 내역(신고번호·세번부호)이지만, 직접 만든 수출입 통합 DB도 읽을 수 있게
+// 열 이름을 보정한다. 신고번호가 없으면 행 번호로 대신하고, 세번부호는 HSK 10단위 등 다른 이름도 인식한다.
+function normalizeRaws(raws: Raw[]): Raw[] {
+  const keys = Object.keys(raws[0]);
+  const has = (name: string) => keys.some((k) => squash(k) === squash(name));
+
+  const DECL = ["수입신고번호", "수출입신고번호", "신고서번호", "신고no", "신고번호(수입)", "declarationno"];
+  const HS = ["hsk10단위", "hsk10", "hsk", "hsk코드", "hs부호", "hs코드", "hscode", "hs", "세번", "품목번호", "품목코드", "세번부호(hsk)"];
+
+  const findKey = (aliases: string[]) => {
+    for (const a of aliases) {
+      const k = keys.find((x) => squash(x) === squash(a));
+      if (k) return k;
+    }
+    return undefined;
+  };
+
+  const needDecl = !has("신고번호");
+  const declKey = needDecl ? findKey(DECL) : undefined;
+  const needHs = !has("세번부호");
+  const hsKey = needHs
+    ? findKey(HS) ?? keys.find((x) => /^hsk?/.test(squash(x)) || squash(x).includes("세번"))
+    : undefined;
+
+  if (!needDecl && !needHs) return raws;
+  return raws.map((raw, i) => {
+    const out: Raw = { ...raw };
+    if (needDecl) {
+      const v = declKey ? str(raw[declKey]) : "";
+      out["신고번호"] = v || `행${i + 2}`; // 엑셀 행 번호(머리글 제외 첫 데이터 행 = 2)
+    }
+    if (needHs && hsKey) out["세번부호"] = normalizeHs(raw[hsKey]);
+    return out;
+  });
+}
+
 export function readRaw(buffer: Buffer): Raw[] {
   const wb = XLSX.read(buffer, { type: "buffer" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) throw new Error("시트를 찾을 수 없습니다");
   const raws = XLSX.utils.sheet_to_json<Raw>(sheet, { defval: "" });
   if (raws.length === 0) throw new Error("데이터가 없습니다");
-  return raws;
+  return normalizeRaws(raws);
 }
 
 export function readLines(source: Buffer | Raw[]): LineRow[] {
@@ -95,7 +142,7 @@ export function readLines(source: Buffer | Raw[]): LineRow[] {
 
   const probe = makeGetter(raws[0]);
   if (probe("신고번호") === undefined || probe("세번부호") === undefined) {
-    throw new Error("'신고번호', '세번부호' 열을 찾을 수 없습니다. UNI-PASS 수입신고 내역(란 단위) 엑셀인지 확인해 주세요");
+    throw new Error("세번부호(또는 HSK 10단위) 열을 찾을 수 없습니다. UNI-PASS 수입신고 내역(란 단위) 또는 수출입 통합 DB 엑셀인지 확인해 주세요");
   }
 
   return raws
