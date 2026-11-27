@@ -205,13 +205,18 @@ export default function Home() {
     <main className="home">
       <section className="hero">
         <div className="hero-inner">
-          <HeroIllustration />
-          <div>
-            <p className="eyebrow">JW CUSTOMS COMPLIANCE SOLUTION</p>
+          <div className="hero-art-wrap">
+            <HeroIllustration />
+          </div>
+          <div className="hero-copy">
+            <p className="eyebrow">
+              <span className="eyebrow-dot" />
+              JW CUSTOMS COMPLIANCE SOLUTION
+            </p>
             <h1>
               관세 성실신고 확인·자율심사 제도,
               <br />
-              체계적인 수입신고 검증부터 시작합니다.
+              <span className="hl">체계적인 수입신고 검증</span>부터 시작합니다.
             </h1>
             <p className="lede">
               JW관세법인의 수입신고 검증 프로그램은 UNI-PASS 수입신고 내역을 기반으로 품목분류, 관세율, FTA 협정세율 및
@@ -230,6 +235,13 @@ export default function Home() {
               <Link href="/#overview" className="btn-secondary">
                 성실신고 확인·자율심사 제도 안내
               </Link>
+            </div>
+            <div className="hero-chips">
+              <span>품목분류</span>
+              <span>관세율·FTA</span>
+              <span>과세가격</span>
+              <span>수입요건</span>
+              <span>AI 분류의견서</span>
             </div>
             <ul className="hero-points">
               <li>업로드 자료는 검증 목적으로만 처리하며 서버에 별도로 보관하지 않습니다.</li>
