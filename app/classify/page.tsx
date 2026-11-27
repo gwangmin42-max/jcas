@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HsLookup from "@/components/HsLookup";
 import type { Analysis, ClassifyInput, Enriched, Opinion } from "@/lib/classify";
 
 type Result = { input: ClassifyInput; analysis: Analysis; enriched: Enriched[] };
@@ -71,8 +72,20 @@ export default function ClassifyPage() {
 
   return (
     <main className="cls">
-      <h1>AI 품목분류 검토</h1>
-      <p className="sub">품명·용도 등을 입력하면 HS 품목분류 판단 근거, 한국·미국(CBP) 유사 사례, 수입요건을 정리하고 사전심사용 분류의견서 초안을 작성합니다.</p>
+      <h1>품목분류 검토</h1>
+      <p className="sub">HS코드·품명을 입력하면 관세율, 수입요건, 한국 분류사례를 바로 조회합니다. 아래 AI 검토는 품명·용도로 판단 근거와 한국·미국(CBP) 사례를 정리하고 사전심사용 분류의견서 초안을 작성합니다.</p>
+
+      <section className="cls-card">
+        <h2>HS·세율·사례 조회</h2>
+        <HsLookup
+          onPick={(hs) => {
+            setForm((f) => ({ ...f, extra: `검토 대상 HS: ${hs.replace(/^(\d{4})(\d{2})(\d{4})$/, "$1.$2-$3")}${f.extra ? " / " + f.extra : ""}` }));
+            document.getElementById("ai-form")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
+      </section>
+
+      <h2 className="cls-h2" id="ai-form">AI 품목분류 검토</h2>
 
       <form className="cls-form" onSubmit={run}>
         <label>
@@ -208,9 +221,7 @@ export default function ClassifyPage() {
               ))}
               {en?.domesticCases.map((d, i) => (
                 <li key={`d${i}`}>
-                  <a href={d.url} target="_blank" rel="noreferrer">
-                    {d.title}
-                  </a>{" "}
+                  {d.title}{" "}
                   <span className="cls-meta">{[d.set, d.no, d.date].filter(Boolean).join(" · ")}</span>
                 </li>
               ))}

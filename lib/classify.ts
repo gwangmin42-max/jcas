@@ -1,5 +1,9 @@
 // AI 품목분류 검토: Claude(웹검색 포함) 분석 + HS BOX 데이터(UNI-PASS 세율·수입요건·국내 사례) 결합. 서버 전용.
 import Anthropic from "@anthropic-ai/sdk";
+import { readFileSync } from "fs";
+import path from "path";
+import { searchHs } from "./hs";
+import { fetchRequirements } from "./requirements";
 
 export type ClassifyInput = {
   name: string; // 품명
@@ -33,8 +37,6 @@ export type Analysis = {
 };
 
 const MODEL = process.env.CLASSIFY_MODEL || "claude-opus-5-5";
-
-export const HSBOX = process.env.HSBOX_BASE || "https://hs-box.vercel.app";
 
 export function formatInput(i: ClassifyInput): string {
   return [
@@ -127,10 +129,10 @@ export async function analyze(input: ClassifyInput): Promise<Analysis> {
   };
 }
 
-// ── HS BOX 연동 ─────────────────────────────────────────────
+// ── 세율·수입요건·국내 사례 (자체 데이터, 서버 전용) ─────────────
 export type HsVerified = { hs: string; name: string; basic?: string; wto?: string; fta: { label: string; rate: string }[] } | null;
 export type Req = { law: string; agency: string; doc: string };
-export type DomesticCase = { title: string; no?: string; date?: string; org?: string; set: string; url: string };
+export type DomesticCase = { title: string; no?: string; date?: string; org?: string; set: string };
 export type Enriched = {
   hs6: string;
   verified: HsVerified;
@@ -139,35 +141,29 @@ export type Enriched = {
   domesticCases: DomesticCase[];
 };
 
-async function getJson<T>(path: string): Promise<T | null> {
+type Head = { id: string; title: string; no?: string; date?: string; org?: string };
+const fileCache = new Map<string, unknown>();
+function readCase<T>(name: string): T | null {
   try {
-    const r = await fetch(`${HSBOX}${path}`, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(15000) });
-    return r.ok ? ((await r.json()) as T) : null;
+    if (!fileCache.has(name)) fileCache.set(name, JSON.parse(readFileSync(path.join(process.cwd(), "public", "case-data", name), "utf8")));
+    return fileCache.get(name) as T;
   } catch {
     return null;
   }
 }
 
-type Head = { id: string; title: string; no?: string; date?: string; org?: string };
-
 export async function enrich(cands: Candidate[]): Promise<Enriched[]> {
-  const [idx, cgm, tt, prec] = await Promise.all([
-    getJson<Record<string, string[]>>("/case-data/hsindex.json"),
-    getJson<{ items: Head[] }>("/case-data/cgm.json"),
-    getJson<{ items: Head[] }>("/case-data/tt.json"),
-    getJson<{ items: Head[] }>("/case-data/prec.json"),
-  ]);
-  const sets: Record<string, { label: string; map: Map<string, Head> }> = {
-    cgm: { label: "관세청 법령해석", map: new Map((cgm?.items ?? []).map((h) => [h.id, h])) },
-    tt: { label: "조세심판원 결정", map: new Map((tt?.items ?? []).map((h) => [h.id, h])) },
-    prec: { label: "판례", map: new Map((prec?.items ?? []).map((h) => [h.id, h])) },
-  };
+  const idx = readCase<Record<string, string[]>>("hsindex.json");
+  const sets: Record<string, { label: string; map: Map<string, Head> }> = {};
+  for (const [k, label] of [["cgm", "관세청 법령해석"], ["tt", "조세심판원 결정"], ["prec", "판례"]] as const) {
+    const j = readCase<{ items: Head[] }>(`${k}.json`);
+    sets[k] = { label, map: new Map((j?.items ?? []).map((h) => [h.id, h])) };
+  }
 
   return Promise.all(
     cands.map(async (c) => {
       const d6 = c.hs6.replace(/\D/g, "").slice(0, 6);
       const d10 = (c.hsk10 ?? "").replace(/\D/g, "");
-      // 사례: 6단위 우선, 부족하면 4단위
       const refs: string[] = [...(idx?.[d6] ?? []), ...(d6.length >= 4 ? (idx?.[d6.slice(0, 4)] ?? []) : [])];
       const seen = new Set<string>();
       const domesticCases: DomesticCase[] = [];
@@ -178,7 +174,7 @@ export async function enrich(cands: Candidate[]): Promise<Enriched[]> {
         const s = sets[k];
         const h = s?.map.get(id);
         if (!h) continue;
-        domesticCases.push({ title: h.title, no: h.no, date: h.date, org: h.org, set: s.label, url: `${HSBOX}/${k === "cgm" ? "cases" : "rulings"}?q=${encodeURIComponent(d6)}` });
+        domesticCases.push({ title: h.title, no: h.no, date: h.date, org: h.org, set: s.label });
         if (domesticCases.length >= 8) break;
       }
 
@@ -186,21 +182,27 @@ export async function enrich(cands: Candidate[]): Promise<Enriched[]> {
       let requirements: Req[] | null = null;
       let requirementsNote: string | undefined;
       if (d10.length === 10) {
-        const h = await getJson<{ ok: boolean; items: { hs: string; name: string; rates: { code: string; label: string; rate: string }[] }[] }>(`/api/hs?hs=${d10}`);
-        const it = h?.ok ? h.items[0] : undefined;
-        if (it) {
-          verified = {
-            hs: it.hs,
-            name: it.name,
-            basic: it.rates.find((r) => r.code === "A")?.rate,
-            wto: it.rates.find((r) => r.code === "C")?.rate,
-            fta: it.rates.filter((r) => r.code.startsWith("F")).map((r) => ({ label: r.label, rate: r.rate })),
-          };
-          const q = await getJson<{ ok: boolean; items: Req[] }>(`/api/requirements?hs=${d10}&type=2`);
-          if (q?.ok) requirements = q.items;
-          else requirementsNote = "수입요건 조회에 실패했습니다.";
-        } else {
-          requirementsNote = "AI가 제시한 10단위가 관세청 HSK 표에서 확인되지 않아 세율·요건을 조회하지 못했습니다. HS BOX/UNI-PASS에서 10단위를 확정하세요.";
+        try {
+          const { items } = await searchHs({ hs: d10 });
+          const it = items[0];
+          if (it) {
+            verified = {
+              hs: it.hs,
+              name: it.name,
+              basic: it.rates.find((r) => r.code === "A")?.rate,
+              wto: it.rates.find((r) => r.code === "C")?.rate,
+              fta: it.rates.filter((r) => r.code.startsWith("F")).map((r) => ({ label: r.label, rate: r.rate })),
+            };
+            try {
+              requirements = await fetchRequirements(d10, "2");
+            } catch {
+              requirementsNote = "수입요건 조회에 실패했습니다.";
+            }
+          } else {
+            requirementsNote = "AI가 제시한 10단위가 관세청 HSK 표에서 확인되지 않아 세율·요건을 조회하지 못했습니다. 아래 ‘HS·사례 조회’로 10단위를 확정하세요.";
+          }
+        } catch (e) {
+          requirementsNote = e instanceof Error && /not set/.test(e.message) ? "UNIPASS_HS_KEY 환경변수가 없어 세율을 조회하지 못했습니다." : "세율 조회에 실패했습니다.";
         }
       } else {
         requirementsNote = "10단위가 확정되지 않아 세율·수입요건은 조회하지 않았습니다.";
@@ -209,6 +211,7 @@ export async function enrich(cands: Candidate[]): Promise<Enriched[]> {
     })
   );
 }
+
 
 // ── 분류의견서 ─────────────────────────────────────────────
 export type Opinion = {

@@ -310,3 +310,37 @@ main > .brand-banner { margin-bottom: 20px; }
 .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
 .hero-chips span { font-size: 12.5px; padding: 5px 12px; border-radius: 99px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #dbe6f4; }
 @media (max-width: 860px) { .hero-inner { grid-template-columns: 1fr; } .hero-art { max-width: 340px; } .hero { padding: 40px 0; } }
+.cls-form label, .cls-form input, .cls-form textarea { min-width: 0; max-width: 100%; } .cls-form input, .cls-form textarea { width: 100%; }
+
+/* 조회 */
+.cls section.cls-card { margin-bottom: 28px; }
+.cls-h2 { font-size: 20px; color: var(--brand-deep); margin: 8px 0 12px; }
+.lk-form { display: flex; gap: 8px; }
+.lk-form input { flex: 1; min-width: 0; font: inherit; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.lk-ex { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.lk-ex button { border: 1px solid var(--line); background: #f8fafc; border-radius: 99px; padding: 3px 11px; font: inherit; cursor: pointer; }
+.lk-ex button:hover { background: var(--accent-soft); border-color: var(--accent); }
+.lk-res h3 { font-size: 16px; margin: 20px 0 0; color: var(--brand-deep); }
+.lk-res h4 { font-size: 13px; color: var(--accent); margin: 16px 0 6px; font-family: inherit; }
+.lk-list { list-style: none; padding: 0 !important; display: grid; gap: 8px; }
+.lk-list > li { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.mono { font-family: ui-monospace, Consolas, monospace; color: var(--brand); }
+.lk-rate { margin-left: 8px; font-weight: 700; color: var(--brand-deep); }
+.lk-fta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.lk-fta span { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; font-size: 12px; color: #475569; }
+.lk-acts { display: flex; gap: 6px; margin-top: 6px; }
+.lk-acts button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 3px 10px; font: inherit; font-size: 12.5px; cursor: pointer; color: var(--brand); }
+.lk-acts button:hover { background: var(--accent-soft); }
+.lk-req { margin-top: 6px !important; font-size: 13px; }
+.lk-grp { margin: 8px 0; font-size: 14px; }
+.lk-grp ul { margin: 2px 0 0; font-size: 13px; }
+
+/* 헤더: 좁은 화면에서 잘리지 않게, 메뉴 호버 구분 */
+.site-header-inner { flex-wrap: wrap; row-gap: 6px; }
+.site-nav { flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.site-nav a { white-space: nowrap; padding: 7px 11px; border-radius: 8px; transition: background .15s, color .15s; position: relative; }
+.site-nav a:not(.nav-cta):hover { background: var(--accent-soft); color: var(--accent); }
+.site-nav a:not(.nav-cta)::after { content: ""; position: absolute; left: 11px; right: 11px; bottom: 2px; height: 2px; border-radius: 2px; background: var(--accent); transform: scaleX(0); transition: transform .18s; }
+.site-nav a:not(.nav-cta):hover::after { transform: scaleX(1); }
+.nav-cta { margin-left: 6px; transition: background .15s, transform .15s; }
+.nav-cta:hover { background: var(--accent); transform: translateY(-1px); }
