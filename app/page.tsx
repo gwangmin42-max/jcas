@@ -205,6 +205,7 @@ export default function Home() {
     <main className="home">
       <section className="hero">
         <div className="hero-inner">
+          <HeroIllustration />
           <div>
             <p className="eyebrow">JW CUSTOMS COMPLIANCE SOLUTION</p>
             <h1>
@@ -223,6 +224,9 @@ export default function Home() {
               <Link href="/verify" className="btn-primary">
                 수입신고 적정성 검증
               </Link>
+              <Link href="/classify" className="btn-secondary">
+                AI 품목분류 검토
+              </Link>
               <Link href="/#overview" className="btn-secondary">
                 성실신고 확인·자율심사 제도 안내
               </Link>
@@ -232,7 +236,6 @@ export default function Home() {
               <li>검증 결과는 전문 검토가 필요한 신고내역을 식별하기 위한 참고자료입니다.</li>
             </ul>
           </div>
-          <HeroIllustration />
         </div>
       </section>
 
