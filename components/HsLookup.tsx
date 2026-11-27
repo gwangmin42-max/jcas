@@ -8,7 +8,9 @@ type HsRate = { code: string; label: string; rate: string };
 type HsItem = { hs: string; name: string; unit: string; rates: HsRate[] };
 type Req = { law: string; agency: string; doc: string };
 type Group = { key: string; label: string; total: number; top: Head[] };
-type Result = { query: string; isHs: boolean; digits: string; hsItems: HsItem[]; hsTotal: number; hsNote?: string; groups: Group[] };
+type ClipCase = { rrdcNo: string; hs: string; name: string; desc: string; reason: string; org: string; date: string; url: string };
+type Clip = { total: number; items: ClipCase[] } | string;
+type Result = { clip: Clip; query: string; isHs: boolean; digits: string; hsItems: HsItem[]; hsTotal: number; hsNote?: string; groups: Group[] };
 
 const SETS = [
   { key: "cgm", label: "관세청 법령해석" },
@@ -64,6 +66,14 @@ export default function HsLookup({ onPick }: { onPick?: (hs: string) => void }) 
       })
     );
 
+    let clip: Clip = "조회 중…";
+    try {
+      const cj = await (await fetch(`/api/clip?q=${encodeURIComponent(query)}`)).json();
+      clip = cj.ok ? { total: cj.total, items: cj.items } : cj.error;
+    } catch {
+      clip = "관세청 품목분류사례 조회에 실패했습니다.";
+    }
+
     let hsItems: HsItem[] = [];
     let hsTotal = 0;
     let hsNote: string | undefined;
@@ -75,7 +85,7 @@ export default function HsLookup({ onPick }: { onPick?: (hs: string) => void }) 
     } else {
       hsNote = "HS 10자리를 입력하면 관세율이 조회됩니다. 품명으로 검색하면 HS 목록이 나옵니다.";
     }
-    setRes({ query, isHs, digits, hsItems, hsTotal, hsNote, groups });
+    setRes({ clip, query, isHs, digits, hsItems, hsTotal, hsNote, groups });
     setLoading(false);
   }
 
@@ -140,7 +150,39 @@ export default function HsLookup({ onPick }: { onPick?: (hs: string) => void }) 
             </ul>
           ) : <p className="cls-meta">{res.hsNote ?? "검색 결과가 없습니다."}</p>}
 
-          <h4>관련 사례·판례 (한국)</h4>
+          <h4>관세청 품목분류 사례 (UNI-PASS 공식){typeof res.clip !== "string" && ` · 전체 ${res.clip.total.toLocaleString()}건${res.clip.total > res.clip.items.length ? ` 중 상위 ${res.clip.items.length}건` : ""}`}</h4>
+          {typeof res.clip === "string" ? (
+            <p className="cls-meta">{res.clip}</p>
+          ) : res.clip.items.length === 0 ? (
+            <p className="cls-meta">해당 조건의 품목분류 사례가 없습니다. (4자리·6자리로 넓혀 보세요)</p>
+          ) : (
+            <ul className="lk-list">
+              {res.clip.items.map((c) => (
+                <li key={c.rrdcNo}>
+                  <div>
+                    <b className="mono">{c.hs}</b> {c.name}
+                  </div>
+                  <div className="cls-meta">{[c.org, c.date, c.rrdcNo].filter(Boolean).join(" · ")}</div>
+                  <details>
+                    <summary>물품설명·결정사유 보기</summary>
+                    {c.desc && <p className="lk-txt"><b>물품설명</b>{"\n"}{c.desc}</p>}
+                    {c.reason && <p className="lk-txt"><b>결정사유</b>{"\n"}{c.reason}</p>}
+                    <a href={c.url} target="_blank" rel="noreferrer">UNI-PASS 원문 보기</a>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h4>미국 관세청(CBP) 사례</h4>
+          <p className="cls-meta">
+            <a href={`https://rulings.cbp.gov/search?term=${encodeURIComponent(res.isHs ? res.digits.slice(0, 4) + (res.digits.length >= 6 ? "." + res.digits.slice(4, 6) : "") : res.query)}&collection=ALL&sortBy=RELEVANCE&pageSize=30&page=1`} target="_blank" rel="noreferrer">
+              CBP CROSS에서 “{res.isHs ? res.digits.slice(0, 4) + (res.digits.length >= 6 ? "." + res.digits.slice(4, 6) : "") : res.query}” 검색 ↗
+            </a>{" "}
+            · 미국 사례는 영문 품명 또는 HTS 번호로 검색하면 정확합니다.
+          </p>
+
+          <h4>관련 법령해석·심판·판례 (한국)</h4>
           {res.groups.map((g) => (
             <div key={g.key} className="lk-grp">
               <b>{g.label}</b> <span className="cls-meta">{g.total.toLocaleString()}건{g.total > g.top.length && ` · 상위 ${g.top.length}건`}</span>

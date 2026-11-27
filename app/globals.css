@@ -344,3 +344,5 @@ main > .brand-banner { margin-bottom: 20px; }
 .site-nav a:not(.nav-cta):hover::after { transform: scaleX(1); }
 .nav-cta { margin-left: 6px; transition: background .15s, transform .15s; }
 .nav-cta:hover { background: var(--accent); transform: translateY(-1px); }
+.lk-txt { white-space: pre-wrap; font-size: 13px; margin: 6px 0; line-height: 1.6; }
+.lk-list a { color: var(--brand); text-decoration: underline; font-size: 13px; }
